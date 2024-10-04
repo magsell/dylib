@@ -158,6 +158,17 @@ public:
             close(m_handle);
     }
 
+    /**
+     *  Replaces the currently loaded dynamic library
+     *
+     *  @throws `dylib::load_error` if the library could not be opened (including
+     *  the case of the library file not being found)
+     *  @throws `std::invalid_argument` if the arguments are null
+     *
+     *  @param dir_path the directory path where the dynamic library is located
+     *  @param name the name of the dynamic library to load
+     *  @param decorations adds OS-specific decorations to the library name
+     */
     void reset(const char *dir_path, const char *lib_name, bool decorations = add_filename_decorations) {
         if (m_handle)
             close(m_handle);
@@ -305,7 +316,7 @@ public:
     }
 
     operator bool() const noexcept {
-      return (m_handle != nullptr);
+        return (m_handle != nullptr);
     }
 
 protected:
