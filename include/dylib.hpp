@@ -97,6 +97,9 @@ public:
     dylib(const dylib&) = delete;
     dylib& operator=(const dylib&) = delete;
 
+    dylib() noexcept : m_handle{nullptr}
+    {}
+
     dylib(dylib &&other) noexcept : m_handle(other.m_handle) {
         other.m_handle = nullptr;
     }
@@ -120,24 +123,7 @@ public:
      */
     ///@{
     dylib(const char *dir_path, const char *lib_name, bool decorations = add_filename_decorations) {
-        if (!dir_path)
-            throw std::invalid_argument("The directory path is null");
-        if (!lib_name)
-            throw std::invalid_argument("The library name is null");
-
-        std::string final_name = lib_name;
-        std::string final_path = dir_path;
-
-        if (decorations)
-            final_name = filename_components::prefix + final_name + filename_components::suffix;
-
-        if (!final_path.empty() && final_path.find_last_of('/') != final_path.size() - 1)
-            final_path += '/';
-
-        m_handle = open((final_path + final_name).c_str());
-
-        if (!m_handle)
-            throw load_error("Could not load library \"" + final_path + final_name + "\"\n" + get_error_description());
+        reset(dir_path, lib_name, decorations);
     }
 
     dylib(const std::string &dir_path, const std::string &lib_name, bool decorations = add_filename_decorations)
@@ -170,6 +156,50 @@ public:
     ~dylib() {
         if (m_handle)
             close(m_handle);
+    }
+
+    void reset(const char *dir_path, const char *lib_name, bool decorations = add_filename_decorations) {
+        if (m_handle)
+            close(m_handle);
+
+        if (!dir_path)
+            throw std::invalid_argument("The directory path is null");
+        if (!lib_name)
+            throw std::invalid_argument("The library name is null");
+
+        std::string final_name = lib_name;
+        std::string final_path = dir_path;
+
+        if (decorations)
+            final_name = filename_components::prefix + final_name + filename_components::suffix;
+
+        if (!final_path.empty() && final_path.find_last_of('/') != final_path.size() - 1)
+            final_path += '/';
+
+        m_handle = open((final_path + final_name).c_str());
+
+        if (!m_handle)
+            throw load_error("Could not load library \"" + final_path + final_name + "\"\n" + get_error_description());
+    }
+
+    inline void reset(const std::string &dir_path, const std::string &lib_name, bool decorations = add_filename_decorations) {
+        reset(dir_path.c_str(), lib_name.c_str(), decorations);
+    }
+
+    inline void reset(const std::string &dir_path, const char *lib_name, bool decorations = add_filename_decorations) {
+        reset(dir_path.c_str(), lib_name, decorations);
+    }
+
+    inline void reset(const char *dir_path, const std::string &lib_name, bool decorations = add_filename_decorations) {
+        reset(dir_path, lib_name.c_str(), decorations);
+    }
+
+    inline void reset(const std::string &lib_name, bool decorations = add_filename_decorations) {
+        reset("", lib_name.c_str(), decorations);
+    }
+
+    inline void reset(const char *lib_name, bool decorations = add_filename_decorations) {
+        reset("", lib_name, decorations);
     }
 
     /**
@@ -272,6 +302,10 @@ public:
      */
     native_handle_type native_handle() noexcept {
         return m_handle;
+    }
+
+    operator bool() const noexcept {
+      return (m_handle != nullptr);
     }
 
 protected:
